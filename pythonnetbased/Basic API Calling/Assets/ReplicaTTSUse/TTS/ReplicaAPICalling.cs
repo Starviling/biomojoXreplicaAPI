@@ -1,66 +1,49 @@
-/*using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using TokenAuthorization;
-using UnityEngine.Networking;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class ReplicaAPICalling : MonoBehaviour
 {
     TokenInformation token;
-    public string account;
-    public string password;
-    public string text;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        token = null;
-    }
+    public InputField account;
+    public InputField password;
+    public InputField text;
 
+    private static readonly HttpClient client = new HttpClient();
+
+    // Calling Replica Authentication
     public void Authenticate()
     {
-        token = ReplicaPythonAPI.Authenticate(account, password);
-        Debug.Log(token.access_token);
-        Debug.Log(token.refresh_token);
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+        processAuthenticatAsync();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+        Debug.Log("Authentication ran.");
     }
 
-    public void SampleVoice() {
-        StartCoroutine(VoiceCoroutine(ReplicaPythonAPI.SampleVoice(token, text)));
-    }
-
-    public void AvailableVoices() {
-        ReplicaPythonAPI.AvailableVoices(token);
-    }
-
-    IEnumerator VoiceCoroutine(string url)
+    private async Task processAuthenticatAsync()
     {
-        Debug.Log(url);
-        using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.WAV))
+        client.DefaultRequestHeaders.Accept.Clear();
+        client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded"));
+        /*        client.DefaultRequestHeaders.Add("Content-Type", "application/x-www-form-urlencoded");*/
+
+        var values = new Dictionary<string, string>
         {
-            DownloadHandlerAudioClip dHA = new DownloadHandlerAudioClip(url, AudioType.WAV);
-            dHA.streamAudio = true;
-            www.downloadHandler = dHA;
-            www.SendWebRequest();
-            while (www.downloadProgress < 1.0)
-            {
-                Debug.Log("Download progress: " + www.downloadProgress);
-                yield return new WaitForSeconds(.1f);
-            }
-            if (www.isNetworkError)
-            {
-                Debug.LogError("Connection failed.");
-            }
-            else
-            {
-                Debug.Log("Playing Audio");
-                AudioSource audio = this.gameObject.AddComponent<AudioSource>();
-                audio.clip = dHA.audioClip;
-                audio.volume = 1;
-                audio.loop = false;
-                audio.Play();
-                yield return new WaitForSeconds(audio.clip.length);
-                Destroy(audio);
-            }
-        }
+            { "client_id", account.text },
+            { "secret", password.text }
+        };
+        var payload = new FormUrlEncodedContent(values);
+
+        HttpResponseMessage response = await client.PostAsync("https://api.replicastudios.com/auth", payload);
+        var responseString = await response.Content.ReadAsStringAsync();
+
+        Debug.Log(responseString);
     }
-}*/
+}

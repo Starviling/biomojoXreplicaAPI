@@ -7,7 +7,6 @@ using UnityEngine.UI;
 
 public class ReplicaPythonAPI : MonoBehaviour
 {
-
     TokenInformation token;
 
     public InputField account;
