@@ -9,6 +9,7 @@ using TokenAuthorization;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
+using VoiceInformation;
 
 public class ReplicaAPICalling : MonoBehaviour
 {
@@ -47,6 +48,10 @@ public class ReplicaAPICalling : MonoBehaviour
 
         token = JsonConvert.DeserializeObject<TokenInformation>(responseString);
         Debug.Log(token.access_token);
+
+        // Used by the other API callers
+        client.DefaultRequestHeaders.Accept.Clear();
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.access_token);
     }
 
     // Calling Replica Speech
@@ -58,9 +63,6 @@ public class ReplicaAPICalling : MonoBehaviour
     // Calls the GET request to Replica to get the link to voice clip
     private async Task processVoiceAsync()
     {
-        client.DefaultRequestHeaders.Accept.Clear();
-        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.access_token);
-
         string requestParams = string.Empty;
         List<KeyValuePair<string, string>> voiceDetails = new List<KeyValuePair<string, string>>();
         // Converting Request Params to Key Value Pair.  
@@ -116,5 +118,18 @@ public class ReplicaAPICalling : MonoBehaviour
                 Destroy(audio);
             }
         }
+    }
+
+    // Displays the available voices
+    public async void AvailableVoices()
+    {
+        HttpResponseMessage response = await client.GetAsync("https://api.replicastudios.com/voice");
+
+        var responseString = await response.Content.ReadAsStringAsync();
+        Debug.Log(responseString);
+        List<AvailableVoices> available = JsonConvert.DeserializeObject<List<AvailableVoices>>(responseString);
+
+        Debug.Log(available.Count);
+
     }
 }
