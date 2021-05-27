@@ -13,6 +13,8 @@ public class ReplicaPythonAPI : MonoBehaviour
     public InputField password;
     public InputField text;
 
+    public string speaker_id = "c4fe46c4-79c0-403e-9318-ffe7bd4247dd";
+
     void Start()
     {
         Runtime.PythonDLL = Application.dataPath + "/StreamingAssets/python-3.9.5-embed-amd64/python39.dll";
@@ -27,7 +29,7 @@ public class ReplicaPythonAPI : MonoBehaviour
         }
     }
 
-    // Calling Replica Authentication
+    // Calls POST request to Replica to get Authentication token
     public void Authenticate()
     {
         using (Py.GIL()) {
@@ -54,6 +56,7 @@ public class ReplicaPythonAPI : MonoBehaviour
         Debug.Log("Authentication ran.");
     }
 
+    // Calls the GET request to Replica to get the link to voice clip
     public void SampleVoice()
     {
         using (Py.GIL()) {
@@ -67,14 +70,13 @@ public class ReplicaPythonAPI : MonoBehaviour
                 headers["Authorization"] = new PyString("Bearer " + token.access_token);
                 PyDict voiceDetails = new PyDict();
                 voiceDetails["txt"] = new PyString(text.text);
-                voiceDetails["speaker_id"] = new PyString("c4fe46c4-79c0-403e-9318-ffe7bd4247dd");
+                voiceDetails["speaker_id"] = new PyString(speaker_id);
 
-                Debug.Log(json.dumps(voiceDetails));
                 // Py.kw() is supposed to be equivalent to {param:} param, but isn't
                 // Not sure why exactly, but using Py.kw() on both here fixes it and allows it to recognize the speaker_id
                 dynamic r = requests.get("https://api.replicastudios.com/speech", Py.kw("headers", headers), Py.kw("params", voiceDetails));
 
-                Debug.Log(json.dumps(r.json()));
+                Debug.Log(json.dumps(r.json()["url"]));
                 StartCoroutine(VoiceCoroutine((string) json.dumps(r.json()["url"]).strip('"')));
             } catch(PythonException e) {
                 Debug.LogException(e);
@@ -82,6 +84,7 @@ public class ReplicaPythonAPI : MonoBehaviour
         }
     }
 
+    // Displays the available voices
     public void AvailableVoices()
     {
         using (Py.GIL()) {
@@ -102,6 +105,7 @@ public class ReplicaPythonAPI : MonoBehaviour
         }
     }
 
+    // Coroutine to play the audio of voice
     IEnumerator VoiceCoroutine(string url)
     {
         Debug.Log(url);
